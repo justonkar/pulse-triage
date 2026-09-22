@@ -1,0 +1,2941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulse Triage — Full System</title>
+<style>
+/* ============ RESET & TOKENS ============ */
+:root {
+  --brand: #14b8a6;
+  --brand-dark: #0f766e;
+  --red: #e5484d;   --red-bg: #fff1f1;
+  --yellow: #e0a008; --yel-bg: #fff8e3;
+  --green: #17a34a;  --grn-bg: #eefbf2;
+  --blue: #2f6fed;   --blue-bg: #eff5ff;
+  --purple: #7c3aed;
+  --ink: #0f1729;
+  --muted: #5b667a;
+  --line: #e3e8ef;
+  --bg: #f4f6fa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ UTILITY ============ */
+.hidden { display: none !important; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ============ LOGIN ============ */
+#loginScreen {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #fff;
+}
+@media (max-width: 900px) { #loginScreen { grid-template-columns: 1fr; } }
+
+.login-left {
+  background: linear-gradient(135deg, #0f766e, #134e4a);
+  color: #fff;
+  padding: 60px 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.login-left::before {
+  content: "";
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: rgba(20,184,166,.15);
+}
+.login-left::after {
+  content: "";
+  position: absolute;
+  bottom: -150px; left: -100px;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: rgba(47,111,237,.1);
+}
+.login-brand { position: relative; z-index: 1; }
+.login-logo {
+  width: 60px; height: 60px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.15);
+  backdrop-filter: blur(10px);
+  display: grid; place-items: center;
+  font-size: 28px;
+  margin-bottom: 24px;
+}
+.login-brand h1 { font-size: 32px; letter-spacing: -.5px; margin-bottom: 12px; }
+.login-brand p { opacity: .85; line-height: 1.6; font-size: 15px; max-width: 400px; }
+
+.login-features { position: relative; z-index: 1; margin-top: 40px; }
+.login-feature {
+  display: flex; gap: 12px; margin-bottom: 18px;
+  font-size: 14px; opacity: .9;
+}
+.login-feature-icon {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 8px; background: rgba(255,255,255,.12);
+  display: grid; place-items: center; font-size: 15px;
+}
+
+.login-right {
+  padding: 60px 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #fff;
+  overflow-y: auto;
+}
+@media (max-width: 900px) { .login-right { padding: 40px 24px; } }
+
+.login-right h2 { font-size: 24px; margin-bottom: 6px; }
+.login-right .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+.role-tabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 22px;
+}
+.role-tab {
+  flex: 1; padding: 10px;
+  border: none; background: transparent;
+  font-weight: 600; font-size: 13px; color: var(--muted);
+  border-radius: 7px; cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+}
+.role-tab.active {
+  background: #fff; color: var(--ink);
+  box-shadow: 0 1px 4px rgba(15,23,41,.1);
+}
+
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 12px; font-weight: 700;
+  color: var(--muted); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.field input {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  font-size: 14px; font-family: inherit;
+  background: #fff; color: var(--ink);
+  transition: border-color .15s;
+}
+.field input:focus { outline: none; border-color: var(--brand); }
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  border: none; border-radius: 10px;
+  background: var(--brand);
+  color: #fff; font-weight: 700; font-size: 14px;
+  cursor: pointer; font-family: inherit;
+  transition: background .15s;
+  margin-top: 6px;
+}
+.login-btn:hover { background: var(--brand-dark); }
+
+.demo-creds {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--blue-bg);
+  border-radius: 12px;
+  border: 1px solid #dbe6fb;
+}
+.demo-creds h4 {
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--blue);
+  margin-bottom: 10px;
+}
+.demo-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: #fff;
+  border: 1px solid #dbe6fb;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  transition: all .15s;
+}
+.demo-btn:hover { border-color: var(--blue); }
+.demo-btn strong { display: block; font-size: 13px; color: var(--ink); margin-bottom: 2px; }
+.demo-btn span { color: var(--muted); font-family: monospace; font-size: 11.5px; }
+.demo-btn:last-child { margin-bottom: 0; }
+
+/* ============ APP HEADER ============ */
+.app-header {
+  position: sticky; top: 0; z-index: 100;
+  background: #fff; border-bottom: 1px solid var(--line);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; box-shadow: 0 1px 3px rgba(15,23,41,.05);
+}
+.hdr-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 15px; }
+.hdr-logo {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand), var(--blue));
+  color: #fff; display: grid; place-items: center;
+  font-size: 17px;
+}
+.hdr-logo.red { background: linear-gradient(135deg, var(--red), #b82e33); }
+.hdr-logo.yellow { background: linear-gradient(135deg, var(--yellow), #b87d00); }
+.hdr-logo.green { background: linear-gradient(135deg, var(--green), #0e7834); }
+.hdr-user {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: var(--muted);
+}
+.hdr-user strong { color: var(--ink); font-size: 13.5px; display: block; }
+.hdr-user .role-tag {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: .8px; font-weight: 800;
+  color: var(--brand-dark);
+  background: #d9f6f1;
+  padding: 2px 8px; border-radius: 4px;
+  display: inline-block; margin-top: 2px;
+}
+.logout-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--line); background: #fff;
+  border-radius: 8px; cursor: pointer;
+  font-size: 12.5px; font-weight: 600;
+  font-family: inherit; color: var(--muted);
+}
+.logout-btn:hover { background: #f1f5f9; color: var(--ink); }
+
+/* ============ MAIN APP ============ */
+.app-main {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 24px;
+}
+@media (max-width: 700px) { .app-main { padding: 16px; } }
+
+.tabs {
+  display: flex; gap: 4px;
+  background: #fff;
+  padding: 4px; border-radius: 10px;
+  margin-bottom: 22px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+}
+.tab {
+  padding: 10px 18px;
+  border: none; background: transparent;
+  font-weight: 600; font-size: 13.5px;
+  color: var(--muted); cursor: pointer;
+  border-radius: 7px; font-family: inherit;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.tab.active { background: var(--brand); color: #fff; }
+.tab .badge {
+  background: var(--red); color: #fff;
+  padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; margin-left: 6px;
+}
+.tab.active .badge { background: rgba(255,255,255,.3); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ============ EMERGENCY BANNER ============ */
+.emergency-banner {
+  background: linear-gradient(135deg, #e5484d, #b82e33);
+  color: #fff;
+  padding: 20px 24px;
+  border-radius: 14px;
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  animation: emergencyPulse 2s infinite;
+  box-shadow: 0 8px 24px rgba(229,72,77,.3);
+}
+@keyframes emergencyPulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(229,72,77,.3); }
+  50%      { box-shadow: 0 8px 40px rgba(229,72,77,.65); }
+}
+.emergency-banner .em-icon {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  display: grid; place-items: center;
+  font-size: 26px; flex-shrink: 0;
+  animation: ringBell 1.5s infinite;
+}
+@keyframes ringBell {
+  0%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(-12deg); }
+  20%, 40% { transform: rotate(12deg); }
+}
+.emergency-banner h2 { font-size: 20px; margin-bottom: 4px; }
+.emergency-banner p { font-size: 13.5px; opacity: .95; line-height: 1.4; }
+.emergency-banner .em-count {
+  font-size: 32px; font-weight: 800;
+  margin-left: auto; line-height: 1;
+}
+.emergency-banner .em-count small {
+  display: block; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 1px;
+  opacity: .8; font-weight: 700;
+  margin-top: 4px;
+}
+
+/* ============ CARDS ============ */
+.card {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 14px;
+  transition: all .15s;
+}
+.card.hoverable { cursor: pointer; }
+.card.hoverable:hover { border-color: var(--brand); box-shadow: 0 6px 20px rgba(20,184,166,.1); }
+.card.red    { border-left: 5px solid var(--red);    background: #fffafa; }
+.card.yellow { border-left: 5px solid var(--yellow); background: #fffcf5; }
+.card.green  { border-left: 5px solid var(--green);  background: #f8fdfa; }
+.card.blue   { border-left: 5px solid var(--blue);   background: #f8fbff; }
+
+.card-head {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 14px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 16px; font-weight: 700;
+  line-height: 1.3; margin-bottom: 4px;
+}
+.card-sub {
+  font-size: 12.5px; color: var(--muted);
+  line-height: 1.4;
+}
+
+.status-pill {
+  padding: 5px 11px; border-radius: 999px;
+  font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .6px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.status-pill.red    { background: var(--red-bg); color: var(--red); }
+.status-pill.yellow { background: var(--yel-bg); color: #a97a00; }
+.status-pill.green  { background: var(--grn-bg); color: var(--green); }
+.status-pill.blue   { background: var(--blue-bg); color: var(--blue); }
+.status-pill.purple { background: #f3efff; color: var(--purple); }
+.status-pill.grey   { background: #f1f5f9; color: var(--muted); }
+
+.card-body {
+  font-size: 13.5px; line-height: 1.6;
+  color: #3b465a;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.info-cell {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+.info-cell .lbl {
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  color: var(--muted); margin-bottom: 4px;
+}
+.info-cell .val {
+  font-size: 13.5px; font-weight: 600;
+  color: var(--ink); line-height: 1.4;
+}
+
+/* ============ BUTTONS ============ */
+.btn {
+  padding: 10px 18px;
+  border: none; border-radius: 9px;
+  font-weight: 700; font-size: 13px;
+  cursor: pointer; transition: all .15s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center; gap: 6px;
+  justify-content: center;
+}
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary:hover { background: var(--brand-dark); }
+.btn-danger  { background: var(--red); color: #fff; }
+.btn-danger:hover { background: #b82e33; }
+.btn-secondary { background: #f1f5f9; color: var(--ink); }
+.btn-secondary:hover { background: #e3e8ef; }
+.btn-blue { background: var(--blue); color: #fff; }
+.btn-blue:hover { background: #1e40af; }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ============ FORMS ============ */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  color: var(--muted); margin-bottom: 6px;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  font-size: 14px; font-family: inherit;
+  background: #fff; color: var(--ink);
+  transition: border-color .15s;
+}
+.form-group textarea { resize: vertical; min-height: 90px; line-height: 1.55; }
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus { outline: none; border-color: var(--brand); }
+
+/* ============ MIC INTAKE ============ */
+.intake-panel {
+  max-width: 700px; margin: 0 auto;
+  text-align: center;
+  padding: 30px 20px;
+}
+.intake-panel h2 { font-size: 24px; margin-bottom: 8px; }
+.intake-panel .intake-sub {
+  color: var(--muted); font-size: 14px;
+  margin-bottom: 28px; line-height: 1.5;
+}
+
+.mic-button {
+  width: 120px; height: 120px;
+  border-radius: 50%; border: none;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff; font-size: 44px;
+  cursor: pointer; margin: 0 auto 18px;
+  display: grid; place-items: center;
+  box-shadow: 0 8px 28px rgba(20,184,166,.35);
+  transition: all .2s; position: relative;
+}
+.mic-button:hover:not(.recording) { transform: scale(1.05); }
+.mic-button.recording {
+  background: linear-gradient(135deg, var(--red), #c13034);
+  animation: micPulse 1.4s infinite;
+}
+@keyframes micPulse {
+  0%,100% { box-shadow: 0 8px 28px rgba(229,72,77,.4); }
+  50%     { box-shadow: 0 8px 44px rgba(229,72,77,.8); }
+}
+.mic-hint { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+.waveform {
+  display: flex; justify-content: center;
+  align-items: center; gap: 4px;
+  height: 50px; margin-bottom: 20px;
+  opacity: 0; transition: opacity .3s;
+}
+.waveform.active { opacity: 1; }
+.waveform .bar {
+  width: 4px; background: var(--brand);
+  border-radius: 4px;
+  animation: waveAnim 1s infinite ease-in-out;
+}
+@keyframes waveAnim {
+  0%,100% { height: 8px; }
+  50%     { height: 36px; }
+}
+
+.transcript-box {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 20px 18px 18px;
+  min-height: 100px;
+  text-align: left;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink);
+  margin-bottom: 20px;
+  position: relative;
+}
+.transcript-label {
+  position: absolute; top: -9px; left: 14px;
+  background: #fff; padding: 0 8px;
+  font-size: 10.5px; font-weight: 800;
+  color: var(--brand-dark);
+  letter-spacing: 1.1px; text-transform: uppercase;
+}
+.cursor {
+  display: inline-block;
+  width: 2px; height: 17px;
+  background: var(--brand);
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: blinkCursor 1s infinite;
+}
+@keyframes blinkCursor { 50% { opacity: 0; } }
+
+/* ============ MODAL ============ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,41,.55); z-index: 200;
+  padding: 40px 20px; overflow-y: auto;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.active { display: flex; align-items: flex-start; justify-content: center; }
+.modal {
+  background: #fff; border-radius: 16px;
+  max-width: 720px; width: 100%;
+  padding: 30px 32px;
+  position: relative;
+  animation: modalUp .25s ease;
+  margin: auto 0;
+}
+.modal.wide { max-width: 900px; }
+@keyframes modalUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 34px; height: 34px;
+  border-radius: 50%; border: none;
+  background: #f1f5f9; cursor: pointer;
+  font-size: 16px; color: var(--muted);
+  display: grid; place-items: center;
+}
+.modal-close:hover { background: #e3e8ef; }
+.modal-head {
+  display: flex; align-items: flex-start;
+  gap: 16px; margin-bottom: 22px;
+  padding-right: 40px;
+}
+.modal-avatar {
+  width: 52px; height: 52px;
+  border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 16px;
+  color: #fff;
+}
+.modal-avatar.red    { background: linear-gradient(135deg, var(--red), #b82e33); }
+.modal-avatar.yellow { background: linear-gradient(135deg, var(--yellow), #b87d00); }
+.modal-avatar.green  { background: linear-gradient(135deg, var(--green), #0e7834); }
+.modal-avatar.blue   { background: linear-gradient(135deg, var(--blue), #1e40af); }
+
+.soap-section {
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.soap-section:last-child { border-bottom: none; }
+.soap-letter {
+  display: inline-grid; place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  background: var(--brand); color: #fff;
+  font-weight: 800; font-size: 13px;
+  margin-right: 8px; vertical-align: middle;
+}
+.soap-title {
+  font-size: 14.5px; font-weight: 700;
+  vertical-align: middle;
+}
+.soap-body {
+  font-size: 13.5px; line-height: 1.65;
+  color: #3b465a; margin-top: 8px;
+  padding-left: 34px;
+}
+
+/* ============ SOAP / REPLY LISTS ============ */
+.symptom-list {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.symptom-tag {
+  padding: 5px 10px;
+  background: #f1f5f9; border-radius: 7px;
+  font-size: 12.5px; font-weight: 600;
+}
+.icd-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.icd-row:last-child { border-bottom: none; }
+.icd-code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px; font-weight: 700;
+  background: var(--blue-bg); color: var(--blue);
+  padding: 3px 9px; border-radius: 6px;
+  flex-shrink: 0;
+}
+.icd-desc { font-size: 13px; color: var(--ink); line-height: 1.4; }
+
+/* ============ EMPTY STATE ============ */
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--muted);
+}
+.empty-state-icon {
+  font-size: 44px;
+  opacity: .4;
+  margin-bottom: 14px;
+}
+.empty-state h3 {
+  font-size: 17px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.empty-state p { font-size: 13.5px; line-height: 1.5; }
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--ink); color: #fff;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 13.5px; font-weight: 600;
+  z-index: 300; opacity: 0;
+  transition: all .35s;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+.toast.success { background: var(--green); }
+.toast.error { background: var(--red); }
+
+/* ============ LOGIN MISC ============ */
+.form-msg {
+  font-size: 12.5px; padding: 10px 12px;
+  border-radius: 8px; margin-bottom: 12px;
+}
+.form-msg.error { background: var(--red-bg); color: var(--red); }
+
+/* ============ TIMELINE ============ */
+.timeline {
+  padding-left: 20px;
+  border-left: 2px solid var(--line);
+  margin-top: 14px;
+}
+.timeline-item {
+  position: relative;
+  padding-bottom: 16px;
+  padding-left: 16px;
+}
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -27px; top: 4px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2.5px solid var(--brand);
+}
+.timeline-item.red::before    { border-color: var(--red); }
+.timeline-item.yellow::before { border-color: var(--yellow); }
+.timeline-item.green::before  { border-color: var(--green); }
+.timeline-item.blue::before   { border-color: var(--blue); }
+.timeline-item.purple::before { border-color: var(--purple); background: var(--purple); }
+.timeline-label {
+  font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  color: var(--muted); margin-bottom: 3px;
+}
+.timeline-text {
+  font-size: 13.5px; line-height: 1.55;
+  color: var(--ink);
+}
+.timeline-time {
+  font-size: 11px; color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ============ MISC ============ */
+.lang-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  background: #f3efff; color: var(--purple);
+  font-size: 11px; font-weight: 700;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.play-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+  display: grid; place-items: center;
+  font-size: 14px;
+  transition: all .15s;
+}
+.play-btn:hover { background: var(--brand-dark); transform: scale(1.08); }
+.play-btn.playing { background: var(--red); }
+
+.voice-reply {
+  background: linear-gradient(135deg, #f0fdfa, #dcfce7);
+  border: 1.5px solid #a7f3d0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-top: 12px;
+}
+.voice-reply-head {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.voice-reply-head .who {
+  font-size: 12px; font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--brand-dark);
+}
+.voice-reply-text {
+  font-size: 13.5px; line-height: 1.65;
+  color: #22304a;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 700px) {
+  .card-head { flex-direction: column; align-items: flex-start; }
+  .card-head .status-pill { align-self: flex-start; }
+  .app-header { padding: 10px 14px; }
+  .hdr-user .name-full { display: none; }
+  .emergency-banner { padding: 16px; }
+  .emergency-banner .em-icon { width: 42px; height: 42px; font-size: 22px; }
+  .emergency-banner h2 { font-size: 16px; }
+  .emergency-banner .em-count { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<section id="loginScreen" class="screen active">
+  <div class="login-left">
+    <div class="login-brand">
+      <div class="login-logo">♡</div>
+      <h1>Pulse Triage</h1>
+      <p>Voice-first clinical triage for rural India. Speak your symptoms in your own language — AI triages, doctors prioritize, care gets faster.</p>
+    </div>
+
+    <div class="login-features">
+      <div class="login-feature">
+        <div class="login-feature-icon">🎙️</div>
+        <div>
+          <strong>Voice intake in 5 languages</strong><br/>
+          Hindi, Marathi, Tamil, Bengali, English
+        </div>
+      </div>
+      <div class="login-feature">
+        <div class="login-feature-icon">⚡</div>
+        <div>
+          <strong>Instant triage</strong><br/>
+          Red / Yellow / Green risk classification
+        </div>
+      </div>
+      <div class="login-feature">
+        <div class="login-feature-icon">📝</div>
+        <div>
+          <strong>Structured SOAP notes</strong><br/>
+          ICD-11 coded, doctor-ready
+        </div>
+      </div>
+      <div class="login-feature">
+        <div class="login-feature-icon">🔊</div>
+        <div>
+          <strong>Doctor replies in your language</strong><br/>
+          Voice playback for zero-literacy patients
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;opacity:.6;position:relative;z-index:1;">
+      Demo prototype · localStorage persistence · No backend required
+    </div>
+  </div>
+
+  <div class="login-right">
+    <h2>Welcome back</h2>
+    <p class="sub">Sign in to your Pulse Triage account</p>
+
+    <div class="role-tabs" id="roleTabs">
+      <button class="role-tab active" data-role="patient">Patient</button>
+      <button class="role-tab" data-role="asha">ASHA Worker</button>
+      <button class="role-tab" data-role="doctor">Doctor</button>
+    </div>
+
+    <div id="loginError" class="form-msg error hidden"></div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+
+    <button class="login-btn" id="loginBtn">Sign in</button>
+
+    <div class="demo-creds">
+      <h4>Demo credentials — click to auto-fill</h4>
+      <button class="demo-btn" data-email="patient@demo.com" data-pass="patient123" data-role="patient">
+        <strong>👤 Patient — Rahul Verma</strong>
+        <span>patient@demo.com / patient123</span>
+      </button>
+      <button class="demo-btn" data-email="asha@demo.com" data-pass="asha123" data-role="asha">
+        <strong>🩺 ASHA Worker — Sunita Devi</strong>
+        <span>asha@demo.com / asha123</span>
+      </button>
+      <button class="demo-btn" data-email="doctor@demo.com" data-pass="doctor123" data-role="doctor">
+        <strong>👨‍⚕️ Doctor — Dr. Ananya Sharma</strong>
+        <span>doctor@demo.com / doctor123</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PATIENT APP ============ -->
+<section id="patientApp" class="screen">
+  <header class="app-header">
+    <div class="hdr-brand">
+      <div class="hdr-logo">♡</div>
+      <div>
+        Pulse Triage
+        <div style="font-size:10.5px;color:var(--muted);font-weight:500;letter-spacing:0;">
+          Patient portal
+        </div>
+      </div>
+    </div>
+    <div class="hdr-user">
+      <div style="text-align:right;">
+        <strong id="ptName">—</strong>
+        <span class="role-tag">Patient</span>
+      </div>
+      <button class="logout-btn" data-logout>Sign out</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <nav class="tabs" id="ptTabs">
+      <button class="tab active" data-pttab="new">➕ New Complaint</button>
+      <button class="tab" data-pttab="active">
+        Active
+        <span class="badge hidden" id="ptActiveBadge">0</span>
+      </button>
+      <button class="tab" data-pttab="history">📁 History</button>
+    </nav>
+
+    <!-- New complaint -->
+    <div class="tab-panel active" data-ptpanel="new">
+      <div class="intake-panel">
+        <h2>Describe how you're feeling</h2>
+        <p class="intake-sub">
+          Speak in your preferred language. Pulse Triage will transcribe, triage,
+          and send your case to the doctor automatically.
+        </p>
+
+        <div class="lang-row" id="ptLangRow" style="display:flex;justify-content:center;gap:8px;margin-bottom:26px;flex-wrap:wrap;">
+          <button class="lang-chip active" data-lang="hi">हिन्दी</button>
+          <button class="lang-chip" data-lang="mr">मराठी</button>
+          <button class="lang-chip" data-lang="ta">தமிழ்</button>
+          <button class="lang-chip" data-lang="bn">বাংলা</button>
+          <button class="lang-chip" data-lang="en">English</button>
+        </div>
+
+        <button class="mic-button" id="ptMicBtn">🎙️</button>
+        <div class="mic-hint" id="ptMicHint">Tap to start recording</div>
+
+        <div class="waveform" id="ptWaveform">
+          <div class="bar" style="animation-delay:0s"></div>
+          <div class="bar" style="animation-delay:.1s"></div>
+          <div class="bar" style="animation-delay:.2s"></div>
+          <div class="bar" style="animation-delay:.3s"></div>
+          <div class="bar" style="animation-delay:.4s"></div>
+          <div class="bar" style="animation-delay:.5s"></div>
+          <div class="bar" style="animation-delay:.6s"></div>
+          <div class="bar" style="animation-delay:.7s"></div>
+          <div class="bar" style="animation-delay:.8s"></div>
+          <div class="bar" style="animation-delay:.1s"></div>
+          <div class="bar" style="animation-delay:.3s"></div>
+          <div class="bar" style="animation-delay:.5s"></div>
+        </div>
+
+        <div class="transcript-box">
+          <span class="transcript-label">Live transcript</span>
+          <span id="ptTranscript" style="color:#98a2b3;">Waiting for your voice…</span>
+          <span class="cursor hidden" id="ptCursor"></span>
+        </div>
+
+        <div class="btn-row" style="justify-content:center;">
+          <button class="btn btn-secondary" id="ptSampleBtn">Use sample case</button>
+          <button class="btn btn-primary" id="ptSubmitBtn" disabled>Submit for triage →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active cases -->
+    <div class="tab-panel" data-ptpanel="active">
+      <div id="ptActiveList"></div>
+    </div>
+
+    <!-- History -->
+    <div class="tab-panel" data-ptpanel="history">
+      <div id="ptHistoryList"></div>
+    </div>
+  </main>
+</section>
+
+<!-- ============ ASHA APP ============ -->
+<section id="ashaApp" class="screen">
+  <header class="app-header">
+    <div class="hdr-brand">
+      <div class="hdr-logo green">🩺</div>
+      <div>
+        Pulse Triage
+        <div style="font-size:10.5px;color:var(--muted);font-weight:500;letter-spacing:0;">
+          ASHA worker console
+        </div>
+      </div>
+    </div>
+    <div class="hdr-user">
+      <div style="text-align:right;">
+        <strong id="ashaName">—</strong>
+        <span class="role-tag" style="background:#d9f6e3;color:var(--green);">ASHA</span>
+      </div>
+      <button class="logout-btn" data-logout>Sign out</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <nav class="tabs" id="ashaTabs">
+      <button class="tab active" data-ashatab="patients">👥 My Patients</button>
+      <button class="tab" data-ashatab="cases">
+        Active Cases
+        <span class="badge hidden" id="ashaActiveBadge">0</span>
+      </button>
+      <button class="tab" data-ashatab="resolved">✓ Resolved</button>
+    </nav>
+
+    <div class="tab-panel active" data-ashapanel="patients">
+      <div id="ashaPatientsList"></div>
+    </div>
+
+    <div class="tab-panel" data-ashapanel="cases">
+      <div id="ashaCasesList"></div>
+    </div>
+
+    <div class="tab-panel" data-ashapanel="resolved">
+      <div id="ashaResolvedList"></div>
+    </div>
+  </main>
+</section>
+
+<!-- ============ DOCTOR APP ============ -->
+<section id="doctorApp" class="screen">
+  <header class="app-header">
+    <div class="hdr-brand">
+      <div class="hdr-logo red">⚕️</div>
+      <div>
+        Pulse Triage
+        <div style="font-size:10.5px;color:var(--muted);font-weight:500;letter-spacing:0;">
+          Doctor console
+        </div>
+      </div>
+    </div>
+    <div class="hdr-user">
+      <div style="text-align:right;">
+        <strong id="docName">—</strong>
+        <span class="role-tag" style="background:#fde8e8;color:var(--red);">Doctor</span>
+      </div>
+      <button class="logout-btn" data-logout>Sign out</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div id="docEmergencyBanner"></div>
+
+    <nav class="tabs" id="docTabs">
+      <button class="tab active" data-doctab="emergency">
+        🚨 Emergency
+        <span class="badge hidden" id="docEmergencyBadge">0</span>
+      </button>
+      <button class="tab" data-doctab="queue">
+        📋 Queue
+        <span class="badge hidden" id="docQueueBadge">0</span>
+      </button>
+      <button class="tab" data-doctab="resolved">✓ Resolved</button>
+    </nav>
+
+    <div class="tab-panel active" data-docpanel="emergency">
+      <div id="docEmergencyList"></div>
+    </div>
+
+    <div class="tab-panel" data-docpanel="queue">
+      <div id="docQueueList"></div>
+    </div>
+
+    <div class="tab-panel" data-docpanel="resolved">
+      <div id="docResolvedList"></div>
+    </div>
+  </main>
+</section>
+
+<!-- ============ MODAL: CASE DETAIL / SOAP ============ -->
+<div class="modal-overlay" id="caseModal">
+  <div class="modal wide">
+    <button class="modal-close" data-close-modal>✕</button>
+    <div id="caseModalBody"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: DOCTOR REPLY ============ -->
+<div class="modal-overlay" id="replyModal">
+  <div class="modal wide">
+    <button class="modal-close" data-close-modal>✕</button>
+    <div id="replyModalBody"></div>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   PULSE TRIAGE — FULL PROTOTYPE
+   ========================================================= */
+
+/* ---------- CONSTANTS ---------- */
+const LANG_NAMES = {
+  hi: 'हिन्दी (Hindi)',
+  mr: 'मराठी (Marathi)',
+  ta: 'தமிழ் (Tamil)',
+  bn: 'বাংলা (Bengali)',
+  en: 'English'
+};
+
+const LANG_CODES = {
+  hi: 'hi-IN', mr: 'mr-IN', ta: 'ta-IN', bn: 'bn-IN', en: 'en-IN'
+};
+
+const SAMPLES = {
+  hi: {
+    severity: 'red',
+    illness: 'Acute Coronary Syndrome suspected',
+    transcript: 'मुझे दो दिन से सीने में तेज़ दर्द हो रहा है, बाएं हाथ में भी दर्द जा रहा है, और पसीना आ रहा है। सांस लेने में भी तकलीफ है।',
+    symptoms: ['Chest pain (retrosternal)', 'Left arm radiation', 'Diaphoresis', 'Dyspnea', '2-day duration'],
+    icd: [
+      { code: 'BA41.0', desc: 'Acute ST-elevation myocardial infarction' },
+      { code: 'MD30.0', desc: 'Chest pain, unspecified' }
+    ],
+    soap: {
+      subjective: '62-year-old male reports 2 days of severe retrosternal chest pain radiating to left arm, associated with diaphoresis and shortness of breath.',
+      objective: 'Vitals pending. Reported symptoms highly suggestive of acute coronary syndrome.',
+      assessment: 'Suspected Acute Coronary Syndrome (ICD-11: BA41.0). High-risk presentation.',
+      plan: 'Immediate 12-lead ECG and troponin. Aspirin 325 mg PO. Activate cardiology. Transfer to PCI-capable facility.'
+    }
+  },
+  mr: {
+    severity: 'yellow',
+    illness: 'Acute Febrile Illness',
+    transcript: 'मला तीन दिवसांपासून ताप आहे, खोकला पण आहे आणि अंगदुखी आहे. घसा खवखवतोय.',
+    symptoms: ['Fever (3 days)', 'Cough', 'Myalgia', 'Sore throat'],
+    icd: [
+      { code: '1D80', desc: 'Acute upper respiratory infection' },
+      { code: 'MG22', desc: 'Fever, unspecified' }
+    ],
+    soap: {
+      subjective: '34-year-old with 3-day history of fever, cough, generalized myalgia, and sore throat.',
+      objective: 'Febrile illness reported. Vitals to be recorded at PHC.',
+      assessment: 'Acute febrile illness — likely viral URI. Rule out dengue / typhoid.',
+      plan: 'Paracetamol 650 mg PRN. Oral rehydration. CBC + dengue NS1 if fever persists >48h.'
+    }
+  },
+  ta: {
+    severity: 'green',
+    illness: 'Tension-type Headache',
+    transcript: 'எனக்கு இரண்டு நாட்களாக தலைவலி இருக்கிறது. வலி லேசானது, மற்றபடி நலமாக இருக்கிறேன்.',
+    symptoms: ['Mild headache (2 days)', 'No fever', 'No vomiting'],
+    icd: [{ code: '8A81', desc: 'Tension-type headache' }],
+    soap: {
+      subjective: '28-year-old reports 2-day history of mild headache. No fever, no vomiting.',
+      objective: 'Alert, oriented, no red-flag features.',
+      assessment: 'Tension-type headache (ICD-11: 8A81).',
+      plan: 'Hydration, rest, paracetamol PRN. Return if headache worsens.'
+    }
+  },
+  bn: {
+    severity: 'red',
+    illness: 'Acute Respiratory Distress',
+    transcript: 'আমার দু\'দিন ধরে শ্বাস নিতে কষ্ট হচ্ছে, বুকে চাপ লাগছে, এবং কাশি হচ্ছে।',
+    symptoms: ['Dyspnea (2 days)', 'Chest tightness', 'Cough'],
+    icd: [
+      { code: 'MD11.5', desc: 'Dyspnea' },
+      { code: 'CA23', desc: 'Asthma / bronchospasm' }
+    ],
+    soap: {
+      subjective: 'Adult patient reports 2 days of progressive breathlessness, chest tightness, and cough.',
+      objective: 'Respiratory distress reported. Urgent vitals and SpO2 needed.',
+      assessment: 'Acute respiratory distress — rule out severe asthma, pneumonia, or cardiac cause.',
+      plan: 'Immediate SpO2. Oxygen if <92%. Salbutamol nebulization if bronchospasm.'
+    }
+  },
+  en: {
+    severity: 'green',
+    illness: 'Mild Headache',
+    transcript: 'I have had a mild headache for two days. No fever, no vomiting. Feeling otherwise fine.',
+    symptoms: ['Mild headache (2 days)', 'No fever', 'No vomiting'],
+    icd: [{ code: '8A81', desc: 'Tension-type headache' }],
+    soap: {
+      subjective: 'Patient reports 2-day history of mild headache. No fever, no vomiting.',
+      objective: 'Alert and oriented. No red flags.',
+      assessment: 'Tension-type headache (ICD-11: 8A81).',
+      plan: 'Hydration, rest, paracetamol PRN.'
+    }
+  }
+};
+
+const REPLY_TEMPLATES = {
+  red: {
+    text: 'Your symptoms suggest a serious condition. Please come to the PHC immediately. Do not travel alone. If chest pain worsens or you feel breathless, call emergency services right away.',
+    prescription: 'Aspirin 325 mg (single dose, chew), then follow-up at PHC.',
+    followUp: 'Immediate'
+  },
+  yellow: {
+    text: 'Your symptoms need medical review. Please visit the PHC within 24 hours. Take paracetamol if you have fever. Drink plenty of fluids and rest.',
+    prescription: 'Paracetamol 650 mg twice daily for 3 days.',
+    followUp: '24 hours'
+  },
+  green: {
+    text: 'Your symptoms appear mild. Rest well, drink plenty of water, and take paracetamol if needed. If symptoms get worse, please contact the ASHA worker.',
+    prescription: 'Paracetamol 500 mg as needed.',
+    followUp: '5 days if symptoms persist'
+  }
+};
+
+/* ---------- STATE ---------- */
+let DB = {
+  users: [],
+  patients: [],
+  cases: [],
+  session: null
+};
+
+let UI = {
+  loginRole: 'patient',
+  recording: false,
+  recognition: null,
+  currentTranscript: '',
+  currentLang: 'hi',
+  currentPatientForIntake: null,
+  emergencyAlertPlayed: false
+};
+
+/* ---------- PERSISTENCE ---------- */
+const STORAGE_KEY = 'pulse_triage_db_v1';
+
+function saveDB() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+  } catch (e) { console.warn('Save failed', e); }
+}
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      DB = parsed;
+      return true;
+    }
+  } catch (e) { console.warn('Load failed', e); }
+  return false;
+}
+
+function resetDB() {
+  if (!confirm('Reset all demo data? This will clear cases and patients.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+/* ---------- SEED DATA ---------- */
+function seedDB() {
+  DB.users = [
+    {
+      id: 'U-PAT-1', role: 'patient',
+      email: 'patient@demo.com', password: 'patient123',
+      name: 'Rahul Verma', patientId: 'PT-1001'
+    },
+    {
+      id: 'U-ASHA-1', role: 'asha',
+      email: 'asha@demo.com', password: 'asha123',
+      name: 'Sunita Devi', ashaId: 'ASHA-201', village: 'Khed'
+    },
+    {
+      id: 'U-DOC-1', role: 'doctor',
+      email: 'doctor@demo.com', password: 'doctor123',
+      name: 'Dr. Ananya Sharma', doctorId: 'DOC-101',
+      specialization: 'Cardiology', hospital: 'PHC Khed'
+    }
+  ];
+
+  DB.patients = [
+    { id: 'PT-1001', name: 'Rahul Verma',  age: 62, gender: 'Male',   contact: '+91 98200 11223', language: 'hi', ashaId: 'ASHA-201', doctorId: 'DOC-101', isSelfUser: 'U-PAT-1' },
+    { id: 'PT-1002', name: 'Meera Nair',   age: 34, gender: 'Female', contact: '+91 99870 44556', language: 'mr', ashaId: 'ASHA-201', doctorId: 'DOC-101' },
+    { id: 'PT-1003', name: 'Arjun Patel',  age: 45, gender: 'Male',   contact: '+91 90045 77812', language: 'mr', ashaId: 'ASHA-201', doctorId: 'DOC-101' },
+    { id: 'PT-1004', name: 'Sunita Rao',   age: 58, gender: 'Female', contact: '+91 98450 33210', language: 'ta', ashaId: 'ASHA-201', doctorId: 'DOC-101' },
+    { id: 'PT-1005', name: 'Imran Khan',   age: 29, gender: 'Male',   contact: '+91 97110 65284', language: 'hi', ashaId: 'ASHA-201', doctorId: 'DOC-101' }
+  ];
+
+  const now = Date.now();
+  const min = 60 * 1000;
+  const hr = 60 * min;
+
+  DB.cases = [
+    // Red emergency, unresolved
+    {
+      id: 'CS-5001',
+      patientId: 'PT-1002',
+      submittedBy: 'ASHA-201',
+      doctorId: 'DOC-101',
+      createdAt: now - 4 * min,
+      status: 'pending',
+      severity: 'red',
+      illness: 'Severe Anaphylaxis suspected',
+      transcript: 'रोगी को खाने के बाद चेहरे पर सूजन आ गई और सांस लेने में तकलीफ है।',
+      symptoms: ['Facial swelling', 'Dyspnea', 'Rash'],
+      icd: [{ code: '4A84', desc: 'Anaphylaxis' }],
+      soap: {
+        subjective: 'Acute onset facial swelling and difficulty breathing after food.',
+        objective: 'Airway compromise suspected.',
+        assessment: 'Anaphylaxis — emergency.',
+        plan: 'IM epinephrine, oxygen, monitor airway. Transfer.'
+      }
+    },
+    // Red emergency, unresolved
+    {
+      id: 'CS-5002',
+      patientId: 'PT-1001',
+      submittedBy: 'U-PAT-1',
+      doctorId: 'DOC-101',
+      createdAt: now - 12 * min,
+      status: 'pending',
+      severity: 'red',
+      illness: 'Acute Coronary Syndrome suspected',
+      transcript: 'मुझे दो दिन से सीने में तेज़ दर्द हो रहा है, बाएं हाथ में भी दर्द जा रहा है, और पसीना आ रहा है।',
+      symptoms: ['Chest pain (retrosternal)', 'Left arm radiation', 'Diaphoresis'],
+      icd: [{ code: 'BA41.0', desc: 'Acute STEMI' }],
+      soap: {
+        subjective: '2-day history of severe chest pain radiating to left arm with sweating.',
+        objective: 'High-risk presentation.',
+        assessment: 'Suspected ACS.',
+        plan: 'ECG, troponin, aspirin, transfer.'
+      }
+    },
+    // Yellow with doctor reply
+    {
+      id: 'CS-5003',
+      patientId: 'PT-1003',
+      submittedBy: 'ASHA-201',
+      doctorId: 'DOC-101',
+      createdAt: now - 2 * hr,
+      status: 'in_review',
+      severity: 'yellow',
+      illness: 'Acute Febrile Illness',
+      transcript: 'तीन दिवसांपासून ताप आहे, खोकला आहे.',
+      symptoms: ['Fever (3 days)', 'Cough', 'Myalgia'],
+      icd: [{ code: '1D80', desc: 'Acute URI' }, { code: 'MG22', desc: 'Fever' }],
+      soap: {
+        subjective: '3-day fever with cough and body ache.',
+        objective: 'Vitals pending.',
+        assessment: 'Acute febrile illness — likely viral.',
+        plan: 'Paracetamol, hydration, CBC if fever persists.'
+      },
+      doctorReply: {
+        text: 'Your symptoms suggest a viral fever. Take paracetamol 650 mg twice daily for 3 days, drink plenty of fluids, and rest. Please come to the PHC within 24 hours so we can check your blood counts. If fever crosses 103°F or you have difficulty breathing, come immediately.',
+        prescription: 'Paracetamol 650 mg BD for 3 days',
+        followUp: '24 hours',
+        repliedAt: now - 45 * min,
+        repliedBy: 'DOC-101'
+      }
+    },
+    // Green with reply
+    {
+      id: 'CS-5004',
+      patientId: 'PT-1004',
+      submittedBy: 'ASHA-201',
+      doctorId: 'DOC-101',
+      createdAt: now - 5 * hr,
+      status: 'in_review',
+      severity: 'green',
+      illness: 'Tension-type Headache',
+      transcript: 'இரண்டு நாட்களாக தலைவலி, லேசானது.',
+      symptoms: ['Mild headache', 'No fever'],
+      icd: [{ code: '8A81', desc: 'Tension-type headache' }],
+      soap: {
+        subjective: '2-day mild headache.',
+        objective: 'No red flags.',
+        assessment: 'Tension-type headache.',
+        plan: 'Hydration, rest, paracetamol PRN.'
+      },
+      doctorReply: {
+        text: 'Your headache appears to be a tension headache. Take paracetamol 500 mg if needed, drink plenty of water, and try to rest. If the headache gets worse or you develop vision problems, please come to the PHC.',
+        prescription: 'Paracetamol 500 mg PRN',
+        followUp: '5 days if persistent',
+        repliedAt: now - 2 * hr,
+        repliedBy: 'DOC-101'
+      }
+    },
+    // Resolved case (history)
+    {
+      id: 'CS-5005',
+      patientId: 'PT-1001',
+      submittedBy: 'U-PAT-1',
+      doctorId: 'DOC-101',
+      createdAt: now - 3 * 24 * hr,
+      status: 'resolved',
+      severity: 'yellow',
+      illness: 'Hypertension follow-up',
+      transcript: 'ब्लड प्रेशर की दवा चल रही है, कुछ दिन से सिर दर्द है।',
+      symptoms: ['Headache', 'Known hypertensive'],
+      icd: [{ code: 'BA00', desc: 'Hypertension' }],
+      soap: {
+        subjective: 'Known hypertensive on medication, presenting with headache.',
+        objective: 'BP at PHC: 148/92 mmHg.',
+        assessment: 'Hypertension, suboptimally controlled.',
+        plan: 'Titrate antihypertensive, low-salt diet, review in 2 weeks.'
+      },
+      doctorReply: {
+        text: 'Your blood pressure is slightly high. Please continue your current medicine and reduce salt in your food. Come back in 2 weeks for a follow-up check.',
+        prescription: 'Continue Amlodipine 5 mg once daily',
+        followUp: '2 weeks',
+        repliedAt: now - 3 * 24 * hr + 2 * hr,
+        repliedBy: 'DOC-101'
+      },
+      resolution: {
+        finalDiagnosis: 'Hypertension — suboptimally controlled',
+        prescription: 'Amlodipine 5 mg once daily, continue',
+        advice: 'Low-salt diet, regular walking, home BP monitoring',
+        followUpDate: '2026-10-06',
+        resolvedAt: now - 3 * 24 * hr + 3 * hr,
+        resolvedBy: 'DOC-101'
+      }
+    },
+    // Another resolved case
+    {
+      id: 'CS-5006',
+      patientId: 'PT-1005',
+      submittedBy: 'ASHA-201',
+      doctorId: 'DOC-101',
+      createdAt: now - 6 * 24 * hr,
+      status: 'resolved',
+      severity: 'green',
+      illness: 'Mild Allergic Rhinitis',
+      transcript: 'मौसम बदलने से नाक बह रही है और छींक आ रही है।',
+      symptoms: ['Sneezing', 'Runny nose'],
+      icd: [{ code: 'CA08', desc: 'Allergic rhinitis' }],
+      soap: {
+        subjective: 'Seasonal sneezing and runny nose.',
+        objective: 'Nasal mucosa pale.',
+        assessment: 'Allergic rhinitis.',
+        plan: 'Antihistamine, avoid triggers.'
+      },
+      doctorReply: {
+        text: 'This is a seasonal allergy. Take cetirizine 10 mg at night for 5 days. Avoid dust and strong smells.',
+        prescription: 'Cetirizine 10 mg at night × 5 days',
+        followUp: 'Only if symptoms persist',
+        repliedAt: now - 6 * 24 * hr + 2 * hr,
+        repliedBy: 'DOC-101'
+      },
+      resolution: {
+        finalDiagnosis: 'Allergic rhinitis',
+        prescription: 'Cetirizine 10 mg × 5 days',
+        advice: 'Avoid dust, cold exposure',
+        followUpDate: '2026-09-25',
+        resolvedAt: now - 6 * 24 * hr + 4 * hr,
+        resolvedBy: 'DOC-101'
+      }
+    }
+  ];
+
+  saveDB();
+}
+
+/* ---------- UTILITIES ---------- */
+const $  = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+function uid(prefix) {
+  return prefix + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const sec = Math.floor(diff / 1000);
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  if (sec < 45) return 'just now';
+  if (min < 60) return min + ' min ago';
+  if (hr < 24) return hr + ' hr ago';
+  return day + ' day' + (day > 1 ? 's' : '') + ' ago';
+}
+
+function fmtDate(ts) {
+  return new Date(ts).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function getPatient(id) { return DB.patients.find(p => p.id === id); }
+function getUser(id)    { return DB.users.find(u => u.id === id); }
+function getCase(id)    { return DB.cases.find(c => c.id === id); }
+
+function toast(msg, type = '') {
+  const t = $('#toast');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+/* ---------- VOICE / TTS ---------- */
+function speak(text, lang) {
+  if (!('speechSynthesis' in window)) {
+    toast('Voice playback not supported in this browser', 'error');
+    return null;
+  }
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = LANG_CODES[lang] || 'en-IN';
+  utt.rate = 0.95;
+  utt.pitch = 1;
+
+  // Try to find a matching voice
+  const voices = window.speechSynthesis.getVoices();
+  const langPrefix = (LANG_CODES[lang] || 'en').split('-')[0];
+  const match = voices.find(v => v.lang.startsWith(langPrefix));
+  if (match) utt.voice = match;
+
+  window.speechSynthesis.speak(utt);
+  return utt;
+}
+
+function playEmergencyAlert() {
+  if (UI.emergencyAlertPlayed) return;
+  UI.emergencyAlertPlayed = true;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const tones = [
+      { f: 880,  d: 0.14, t: 0.00 },
+      { f: 1175, d: 0.14, t: 0.18 },
+      { f: 880,  d: 0.14, t: 0.36 },
+      { f: 1175, d: 0.22, t: 0.54 }
+    ];
+    tones.forEach(({ f, d, t }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const start = ctx.currentTime + t;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.22, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + d);
+      osc.start(start);
+      osc.stop(start + d + 0.02);
+    });
+  } catch (e) { console.warn('Alert sound failed', e); }
+
+  // Also try a browser notification
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('🚨 Emergency case in queue', {
+      body: 'A red-flagged patient needs immediate attention.',
+      tag: 'pulse-triage-emergency'
+    });
+  }
+}
+
+/* ---------- AUTH ---------- */
+function login(email, password, role) {
+  const user = DB.users.find(u =>
+    u.email.toLowerCase() === email.toLowerCase() &&
+    u.password === password &&
+    u.role === role
+  );
+  if (!user) return { ok: false, error: 'Invalid credentials for this role.' };
+  DB.session = { userId: user.id, role: user.role };
+  saveDB();
+  return { ok: true, user };
+}
+
+function logout() {
+  DB.session = null;
+  saveDB();
+  UI.emergencyAlertPlayed = false;
+  showScreen('login');
+  // Reset login form
+  $('#email').value = '';
+  $('#password').value = '';
+  $('#loginError').classList.add('hidden');
+}
+
+function currentUser() {
+  if (!DB.session) return null;
+  return getUser(DB.session.userId);
+}
+
+/* ---------- SCREEN MANAGEMENT ---------- */
+function showScreen(name) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(name + 'Screen') || document.getElementById(name + 'App');
+  if (el) el.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+/* ---------- ROUTER ---------- */
+function routeAfterLogin() {
+  const user = currentUser();
+  if (!user) return showScreen('login');
+  if (user.role === 'patient') {
+    showScreen('patient');
+    renderPatientApp();
+  } else if (user.role === 'asha') {
+    showScreen('asha');
+    renderASHAApp();
+  } else if (user.role === 'doctor') {
+    showScreen('doctor');
+    renderDoctorApp();
+    // Trigger emergency alert if red cases exist
+    const redCount = DB.cases.filter(c =>
+      c.status === 'pending' && c.severity === 'red'
+    ).length;
+    if (redCount > 0) {
+      setTimeout(() => {
+        playEmergencyAlert();
+        toast(`🚨 ${redCount} emergency case${redCount > 1 ? 's' : ''} need attention`, 'error');
+      }, 600);
+    }
+  }
+}
+
+/* =========================================================
+   PATIENT APP
+   ========================================================= */
+function renderPatientApp() {
+  const user = currentUser();
+  const patient = DB.patients.find(p => p.isSelfUser === user.id);
+  if (!patient) return;
+
+  $('#ptName').textContent = patient.name;
+  UI.currentLang = patient.language || 'hi';
+
+  // Set active language chip
+  $$('#ptLangRow .lang-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.lang === UI.currentLang);
+  });
+
+  renderPatientActiveList(patient.id);
+  renderPatientHistoryList(patient.id);
+  updatePatientBadges(patient.id);
+  resetPatientIntake();
+}
+
+function updatePatientBadges(patientId) {
+  const active = DB.cases.filter(c =>
+    c.patientId === patientId &&
+    (c.status === 'pending' || c.status === 'in_review')
+  ).length;
+  const badge = $('#ptActiveBadge');
+  if (active > 0) {
+    badge.textContent = active;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function resetPatientIntake() {
+  UI.currentTranscript = '';
+  UI.recording = false;
+  const t = $('#ptTranscript');
+  t.textContent = 'Waiting for your voice…';
+  t.style.color = '#98a2b3';
+  $('#ptCursor').classList.add('hidden');
+  $('#ptSubmitBtn').disabled = true;
+  $('#ptMicBtn').classList.remove('recording');
+  $('#ptMicHint').textContent = 'Tap to start recording';
+  $('#ptWaveform').classList.remove('active');
+}
+
+function renderPatientActiveList(patientId) {
+  const container = $('#ptActiveList');
+  const cases = DB.cases
+    .filter(c => c.patientId === patientId && (c.status === 'pending' || c.status === 'in_review'))
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <h3>No active cases</h3>
+        <p>When you submit a complaint, it will appear here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cases.map(c => renderPatientCaseCard(c, false)).join('');
+
+  // Wire up play buttons
+  container.querySelectorAll('[data-play-reply]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const caseId = btn.dataset.playReply;
+      playReplyForCase(caseId, btn);
+    });
+  });
+}
+
+function renderPatientHistoryList(patientId) {
+  const container = $('#ptHistoryList');
+  const cases = DB.cases
+    .filter(c => c.patientId === patientId && c.status === 'resolved')
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <h3>No past cases</h3>
+        <p>Resolved and treated cases will be archived here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cases.map(c => renderPatientCaseCard(c, true)).join('');
+}
+
+function renderPatientCaseCard(c, isHistory) {
+  const severityLabel = c.severity === 'red' ? 'Critical' :
+                        c.severity === 'yellow' ? 'Moderate' : 'Stable';
+  const statusLabel = c.status === 'pending' ? 'Awaiting doctor' :
+                      c.status === 'in_review' ? 'Doctor replied' : 'Resolved';
+  const statusClass = c.status === 'pending' ? 'yellow' :
+                      c.status === 'in_review' ? 'blue' : 'green';
+
+  let replyHtml = '';
+  if (c.doctorReply) {
+    replyHtml = `
+      <div class="voice-reply">
+        <div class="voice-reply-head">
+          <span class="who">💬 Doctor's reply · ${LANG_NAMES[getPatient(c.patientId).language]}</span>
+          <button class="play-btn" data-play-reply="${c.id}" title="Play in your language">🔊</button>
+        </div>
+        <div class="voice-reply-text">${escapeHtml(c.doctorReply.text)}</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+          Prescription: <strong>${escapeHtml(c.doctorReply.prescription)}</strong>
+          &nbsp;·&nbsp; Follow-up: <strong>${escapeHtml(c.doctorReply.followUp)}</strong>
+        </div>
+      </div>
+    `;
+  }
+
+  let resolutionHtml = '';
+  if (c.resolution) {
+    resolutionHtml = `
+      <div style="margin-top:14px;padding:14px;background:#f2fcf5;border:1px solid #c6eed6;border-radius:10px;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--green);margin-bottom:8px;">
+          ✓ Treatment completed
+        </div>
+        <div style="font-size:13px;line-height:1.6;color:#22304a;">
+          <strong>Final diagnosis:</strong> ${escapeHtml(c.resolution.finalDiagnosis)}<br/>
+          <strong>Prescription:</strong> ${escapeHtml(c.resolution.prescription)}<br/>
+          <strong>Advice:</strong> ${escapeHtml(c.resolution.advice)}<br/>
+          <strong>Follow-up:</strong> ${escapeHtml(c.resolution.followUpDate)}
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="card ${c.severity}">
+      <div class="card-head">
+        <div>
+          <div class="card-title">${escapeHtml(c.illness)}</div>
+          <div class="card-sub">
+            ${c.id} · submitted ${timeAgo(c.createdAt)}
+            · ${isHistory ? 'resolved ' + timeAgo(c.resolution.resolvedAt) : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+          <span class="status-pill ${c.severity}">${severityLabel}</span>
+          <span class="status-pill ${statusClass}">${statusLabel}</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;">
+          Your complaint
+        </div>
+        <div style="font-style:italic;color:#3b465a;">"${escapeHtml(c.transcript)}"</div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">
+          Symptoms identified
+        </div>
+        <div class="symptom-list">
+          ${c.symptoms.map(s => `<span class="symptom-tag">${escapeHtml(s)}</span>`).join('')}
+        </div>
+      </div>
+
+      ${replyHtml}
+      ${resolutionHtml}
+    </div>
+  `;
+}
+
+function playReplyForCase(caseId, btn) {
+  const c = getCase(caseId);
+  if (!c || !c.doctorReply) return;
+  const patient = getPatient(c.patientId);
+  const lang = patient.language || 'hi';
+
+  btn.classList.add('playing');
+  btn.textContent = '⏸';
+  const utt = speak(c.doctorReply.text, lang);
+  if (utt) {
+    utt.onend = () => {
+      btn.classList.remove('playing');
+      btn.textContent = '🔊';
+    };
+  } else {
+    setTimeout(() => {
+      btn.classList.remove('playing');
+      btn.textContent = '🔊';
+    }, 2000);
+  }
+}
+
+/* ---------- PATIENT INTAKE ---------- */
+function setupPatientIntake() {
+  // Language chips
+  $$('#ptLangRow .lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      $$('#ptLangRow .lang-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      UI.currentLang = chip.dataset.lang;
+      resetPatientIntake();
+    });
+  });
+
+  // Mic
+  $('#ptMicBtn').addEventListener('click', () => {
+    if (UI.recording) stopPatientRecording();
+    else startPatientRecording();
+  });
+
+  // Sample
+  $('#ptSampleBtn').addEventListener('click', () => {
+    if (UI.recording) stopPatientRecording();
+    const sample = SAMPLES[UI.currentLang];
+    typePatientTranscript(sample.transcript);
+    toast('Sample case loaded — tap Submit to triage');
+  });
+
+  // Submit
+  $('#ptSubmitBtn').addEventListener('click', () => {
+    if (!UI.currentTranscript || UI.currentTranscript.trim().length < 5) {
+      toast('Please record or load a sample first', 'error');
+      return;
+    }
+    submitPatientComplaint();
+  });
+}
+
+function startPatientRecording() {
+  UI.recording = true;
+  $('#ptMicBtn').classList.add('recording');
+  $('#ptMicHint').textContent = 'Listening… tap again to stop';
+  $('#ptWaveform').classList.add('active');
+  $('#ptTranscript').textContent = '';
+  $('#ptTranscript').style.color = 'var(--ink)';
+  $('#ptCursor').classList.remove('hidden');
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    try {
+      UI.recognition = new SR();
+      UI.recognition.lang = LANG_CODES[UI.currentLang];
+      UI.recognition.continuous = true;
+      UI.recognition.interimResults = true;
+      UI.recognition.onresult = e => {
+        let txt = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          txt += e.results[i][0].transcript;
+        }
+        UI.currentTranscript = txt;
+        $('#ptTranscript').textContent = txt;
+      };
+      UI.recognition.onerror = () => {
+        simulatePatientFallback();
+      };
+      UI.recognition.start();
+    } catch (e) {
+      simulatePatientFallback();
+    }
+  } else {
+    simulatePatientFallback();
+  }
+}
+
+function simulatePatientFallback() {
+  const sample = SAMPLES[UI.currentLang];
+  typePatientTranscript(sample.transcript);
+}
+
+function stopPatientRecording() {
+  UI.recording = false;
+  $('#ptMicBtn').classList.remove('recording');
+  $('#ptMicHint').textContent = 'Tap to start recording';
+  $('#ptWaveform').classList.remove('active');
+  $('#ptCursor').classList.add('hidden');
+
+  if (UI.recognition) {
+    try { UI.recognition.stop(); } catch (e) {}
+    UI.recognition = null;
+  }
+
+  if (!UI.currentTranscript || UI.currentTranscript.trim().length < 5) {
+    const sample = SAMPLES[UI.currentLang];
+    typePatientTranscript(sample.transcript);
+  } else {
+    $('#ptSubmitBtn').disabled = false;
+  }
+}
+
+function typePatientTranscript(text) {
+  UI.currentTranscript = '';
+  $('#ptTranscript').textContent = '';
+  $('#ptTranscript').style.color = 'var(--ink)';
+  $('#ptCursor').classList.remove('hidden');
+
+  let i = 0;
+  const speed = 25;
+  const interval = setInterval(() => {
+    UI.currentTranscript += text[i];
+    $('#ptTranscript').textContent = UI.currentTranscript;
+    i++;
+    if (i >= text.length) {
+      clearInterval(interval);
+      $('#ptCursor').classList.add('hidden');
+      $('#ptSubmitBtn').disabled = false;
+    }
+  }, speed);
+}
+
+function submitPatientComplaint() {
+  const user = currentUser();
+  const patient = DB.patients.find(p => p.isSelfUser === user.id);
+  if (!patient) return;
+
+  const sample = SAMPLES[UI.currentLang];
+  const newCase = {
+    id: 'CS-' + Math.floor(5000 + Math.random() * 5000),
+    patientId: patient.id,
+    submittedBy: user.id,
+    doctorId: patient.doctorId,
+    createdAt: Date.now(),
+    status: 'pending',
+    severity: sample.severity,
+    illness: sample.illness,
+    transcript: UI.currentTranscript,
+    symptoms: sample.symptoms,
+    icd: sample.icd,
+    soap: sample.soap
+  };
+
+  DB.cases.unshift(newCase);
+  saveDB();
+
+  // Animate processing overlay
+  showProcessingOverlay(() => {
+    toast(`Triage complete · ${newCase.severity.toUpperCase()}`, 'success');
+    resetPatientIntake();
+    renderPatientActiveList(patient.id);
+    updatePatientBadges(patient.id);
+    // Switch to active tab
+    $$('#ptTabs .tab').forEach(t => t.classList.remove('active'));
+    $$('#ptTabs .tab')[1].classList.add('active');
+    $$('[data-ptpanel]').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-ptpanel="active"]').classList.add('active');
+  });
+}
+
+/* ---------- PROCESSING OVERLAY ---------- */
+function showProcessingOverlay(onDone) {
+  // Use a temporary modal
+  const modal = $('#caseModal');
+  const body = $('#caseModalBody');
+  modal.classList.add('active');
+
+  body.innerHTML = `
+    <div style="text-align:center;padding:20px 10px;">
+      <h2 style="font-size:22px;margin-bottom:6px;">Analysing your symptoms…</h2>
+      <p style="color:var(--muted);margin-bottom:28px;font-size:13.5px;">Running the clinical triage pipeline</p>
+
+      <div class="step" id="pstep1" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:#fff;border:1.5px solid var(--line);border-radius:12px;margin-bottom:10px;opacity:.35;transition:all .35s;">
+        <div style="width:36px;height:36px;border-radius:9px;background:#f1f5f9;display:grid;place-items:center;font-size:16px;">🎙️</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:700;font-size:13.5px;">Transcribing audio</div>
+          <div style="font-size:12px;color:var(--muted);">Whisper Large-v3 speech-to-text</div>
+        </div>
+        <div class="pstat"></div>
+      </div>
+
+      <div class="step" id="pstep2" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:#fff;border:1.5px solid var(--line);border-radius:12px;margin-bottom:10px;opacity:.35;transition:all .35s;">
+        <div style="width:36px;height:36px;border-radius:9px;background:#f1f5f9;display:grid;place-items:center;font-size:16px;">🧠</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:700;font-size:13.5px;">Extracting clinical symptoms</div>
+          <div style="font-size:12px;color:var(--muted);">Gemini 1.5 Flash clinical NER</div>
+        </div>
+        <div class="pstat"></div>
+      </div>
+
+      <div class="step" id="pstep3" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:#fff;border:1.5px solid var(--line);border-radius:12px;margin-bottom:10px;opacity:.35;transition:all .35s;">
+        <div style="width:36px;height:36px;border-radius:9px;background:#f1f5f9;display:grid;place-items:center;font-size:16px;">⚡</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:700;font-size:13.5px;">Stratifying risk</div>
+          <div style="font-size:12px;color:var(--muted);">Red / Yellow / Green classification</div>
+        </div>
+        <div class="pstat"></div>
+      </div>
+
+      <div class="step" id="pstep4" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:#fff;border:1.5px solid var(--line);border-radius:12px;opacity:.35;transition:all .35s;">
+        <div style="width:36px;height:36px;border-radius:9px;background:#f1f5f9;display:grid;place-items:center;font-size:16px;">📝</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:700;font-size:13.5px;">Generating SOAP note</div>
+          <div style="font-size:12px;color:var(--muted);">Structured record · ICD-11 suggestions</div>
+        </div>
+        <div class="pstat"></div>
+      </div>
+    </div>
+  `;
+
+  const steps = ['pstep1', 'pstep2', 'pstep3', 'pstep4'];
+  const runStep = i => {
+    if (i >= steps.length) {
+      setTimeout(() => {
+        modal.classList.remove('active');
+        onDone && onDone();
+      }, 350);
+      return;
+    }
+    const el = document.getElementById(steps[i]);
+    el.style.opacity = '1';
+    el.style.borderColor = 'var(--brand)';
+    el.style.boxShadow = '0 6px 20px rgba(20,184,166,.14)';
+    el.querySelector('.pstat').innerHTML = '<div style="width:18px;height:18px;border:2.5px solid #e3e8ef;border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;"></div>';
+    setTimeout(() => {
+      el.style.borderColor = '#c6eed6';
+      el.style.background = '#f2fcf5';
+      el.style.boxShadow = 'none';
+      el.querySelector('.pstat').innerHTML = '<span style="color:var(--green);font-size:18px;font-weight:800;">✓</span>';
+      setTimeout(() => runStep(i + 1), 150);
+    }, 700);
+  };
+  runStep(0);
+
+  // Add keyframes for spinner
+  if (!document.getElementById('spinStyle')) {
+    const style = document.createElement('style');
+    style.id = 'spinStyle';
+    style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+  }
+}
+
+/* =========================================================
+   ASHA APP
+   ========================================================= */
+function renderASHAApp() {
+  const user = currentUser();
+  $('#ashaName').textContent = user.name;
+
+  renderASHAPatients(user);
+  renderASHACases(user);
+  renderASHAResolved(user);
+  updateASHABadges(user);
+}
+
+function updateASHABadges(user) {
+  const active = DB.cases.filter(c =>
+    c.submittedBy === user.id &&
+    (c.status === 'pending' || c.status === 'in_review')
+  ).length;
+  const badge = $('#ashaActiveBadge');
+  if (active > 0) {
+    badge.textContent = active;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function renderASHAPatients(user) {
+  const container = $('#ashaPatientsList');
+  const patients = DB.patients.filter(p => p.ashaId === user.ashaId);
+
+  if (patients.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">👥</div>
+        <h3>No patients assigned</h3>
+        <p>Patients registered to your village will appear here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div>
+        <h2 style="font-size:18px;">My Patients (${patients.length})</h2>
+        <p style="color:var(--muted);font-size:13px;margin-top:4px;">Village: ${escapeHtml(user.village || '—')}</p>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
+      ${patients.map(p => {
+        const activeCount = DB.cases.filter(c =>
+          c.patientId === p.id && (c.status === 'pending' || c.status === 'in_review')
+        ).length;
+        return `
+          <div class="card blue" style="cursor:pointer;" data-asha-patient="${p.id}">
+            <div class="card-head">
+              <div>
+                <div class="card-title">${escapeHtml(p.name)}</div>
+                <div class="card-sub">${p.id} · ${p.age} yrs · ${p.gender}</div>
+              </div>
+              ${activeCount > 0 ? `<span class="status-pill yellow">${activeCount} active</span>` : ''}
+            </div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">
+              📞 ${escapeHtml(p.contact)}<br/>
+              🗣️ ${LANG_NAMES[p.language]}
+            </div>
+            <div class="btn-row" style="margin-top:12px;">
+              <button class="btn btn-primary btn-sm" data-new-complaint="${p.id}">
+                🎙️ New complaint
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  container.querySelectorAll('[data-new-complaint]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openASHAIntake(btn.dataset.newComplaint);
+    });
+  });
+}
+
+function renderASHACases(user) {
+  const container = $('#ashaCasesList');
+  const cases = DB.cases
+    .filter(c => c.submittedBy === user.id && (c.status === 'pending' || c.status === 'in_review'))
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3>No active cases</h3>
+        <p>Complaints you submit will appear here until the doctor resolves them.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cases.map(c => renderCaseSummaryCard(c, { showPatient: true })).join('');
+}
+
+function renderASHAResolved(user) {
+  const container = $('#ashaResolvedList');
+  const cases = DB.cases
+    .filter(c => c.submittedBy === user.id && c.status === 'resolved')
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">✓</div>
+        <h3>No resolved cases yet</h3>
+        <p>Cases you've submitted that were treated by a doctor will appear here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cases.map(c => renderCaseSummaryCard(c, { showPatient: true, resolved: true })).join('');
+}
+
+/* ---------- ASHA INTAKE ---------- */
+function openASHAIntake(patientId) {
+  const patient = getPatient(patientId);
+  if (!patient) return;
+  UI.currentPatientForIntake = patientId;
+  UI.currentLang = patient.language || 'hi';
+  UI.currentTranscript = '';
+
+  const modal = $('#caseModal');
+  const body = $('#caseModalBody');
+  modal.classList.add('active');
+
+  body.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-avatar blue">${patient.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;">New complaint for ${escapeHtml(patient.name)}</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:3px;">
+          ${patient.id} · ${patient.age} yrs · ${patient.gender} · ${LANG_NAMES[patient.language]}
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:13.5px;color:var(--muted);margin-bottom:20px;line-height:1.55;">
+      Record the patient's symptoms in their own language. Pulse Triage will triage and send to the doctor automatically.
+    </p>
+
+    <button class="mic-button" id="ashaMicBtn" style="width:100px;height:100px;font-size:36px;">🎙️</button>
+    <div class="mic-hint" id="ashaMicHint" style="text-align:center;">Tap to start recording</div>
+
+    <div class="waveform" id="ashaWaveform" style="justify-content:center;">
+      <div class="bar" style="animation-delay:0s"></div>
+      <div class="bar" style="animation-delay:.1s"></div>
+      <div class="bar" style="animation-delay:.2s"></div>
+      <div class="bar" style="animation-delay:.3s"></div>
+      <div class="bar" style="animation-delay:.4s"></div>
+      <div class="bar" style="animation-delay:.5s"></div>
+      <div class="bar" style="animation-delay:.6s"></div>
+      <div class="bar" style="animation-delay:.7s"></div>
+    </div>
+
+    <div class="transcript-box" style="margin-top:6px;">
+      <span class="transcript-label">Live transcript</span>
+      <span id="ashaTranscript" style="color:#98a2b3;">Waiting for voice…</span>
+      <span class="cursor hidden" id="ashaCursor"></span>
+    </div>
+
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn btn-secondary" id="ashaSampleBtn">Use sample case</button>
+      <button class="btn btn-primary" id="ashaSubmitBtn" disabled>Submit for triage →</button>
+    </div>
+  `;
+
+  // Wire up
+  $('#ashaMicBtn').addEventListener('click', () => {
+    if (UI.recording) stopASHARecording();
+    else startASHARecording();
+  });
+  $('#ashaSampleBtn').addEventListener('click', () => {
+    if (UI.recording) stopASHARecording();
+    const sample = SAMPLES[UI.currentLang];
+    typeASHATranscript(sample.transcript);
+  });
+  $('#ashaSubmitBtn').addEventListener('click', () => submitASHAComplaint());
+}
+
+function startASHARecording() {
+  UI.recording = true;
+  $('#ashaMicBtn').classList.add('recording');
+  $('#ashaMicHint').textContent = 'Listening… tap again to stop';
+  $('#ashaWaveform').classList.add('active');
+  $('#ashaTranscript').textContent = '';
+  $('#ashaTranscript').style.color = 'var(--ink)';
+  $('#ashaCursor').classList.remove('hidden');
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    try {
+      UI.recognition = new SR();
+      UI.recognition.lang = LANG_CODES[UI.currentLang];
+      UI.recognition.continuous = true;
+      UI.recognition.interimResults = true;
+      UI.recognition.onresult = e => {
+        let txt = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+        UI.currentTranscript = txt;
+        $('#ashaTranscript').textContent = txt;
+      };
+      UI.recognition.onerror = () => {
+        const sample = SAMPLES[UI.currentLang];
+        typeASHATranscript(sample.transcript);
+      };
+      UI.recognition.start();
+    } catch (e) {
+      const sample = SAMPLES[UI.currentLang];
+      typeASHATranscript(sample.transcript);
+    }
+  } else {
+    const sample = SAMPLES[UI.currentLang];
+    typeASHATranscript(sample.transcript);
+  }
+}
+
+function stopASHARecording() {
+  UI.recording = false;
+  $('#ashaMicBtn').classList.remove('recording');
+  $('#ashaMicHint').textContent = 'Tap to start recording';
+  $('#ashaWaveform').classList.remove('active');
+  $('#ashaCursor').classList.add('hidden');
+  if (UI.recognition) {
+    try { UI.recognition.stop(); } catch (e) {}
+    UI.recognition = null;
+  }
+  if (!UI.currentTranscript || UI.currentTranscript.trim().length < 5) {
+    const sample = SAMPLES[UI.currentLang];
+    typeASHATranscript(sample.transcript);
+  } else {
+    $('#ashaSubmitBtn').disabled = false;
+  }
+}
+
+function typeASHATranscript(text) {
+  UI.currentTranscript = '';
+  $('#ashaTranscript').textContent = '';
+  $('#ashaTranscript').style.color = 'var(--ink)';
+  $('#ashaCursor').classList.remove('hidden');
+  let i = 0;
+  const speed = 25;
+  const interval = setInterval(() => {
+    UI.currentTranscript += text[i];
+    $('#ashaTranscript').textContent = UI.currentTranscript;
+    i++;
+    if (i >= text.length) {
+      clearInterval(interval);
+      $('#ashaCursor').classList.add('hidden');
+      $('#ashaSubmitBtn').disabled = false;
+    }
+  }, speed);
+}
+
+function submitASHAComplaint() {
+  const user = currentUser();
+  const patient = getPatient(UI.currentPatientForIntake);
+  if (!patient) return;
+
+  const sample = SAMPLES[UI.currentLang];
+  const newCase = {
+    id: 'CS-' + Math.floor(5000 + Math.random() * 5000),
+    patientId: patient.id,
+    submittedBy: user.id,
+    doctorId: patient.doctorId,
+    createdAt: Date.now(),
+    status: 'pending',
+    severity: sample.severity,
+    illness: sample.illness,
+    transcript: UI.currentTranscript,
+    symptoms: sample.symptoms,
+    icd: sample.icd,
+    soap: sample.soap
+  };
+
+  DB.cases.unshift(newCase);
+  saveDB();
+
+  showProcessingOverlay(() => {
+    toast(`Triage complete · ${newCase.severity.toUpperCase()}`, 'success');
+    renderASHAApp();
+    // Switch to active tab
+    $$('#ashaTabs .tab').forEach(t => t.classList.remove('active'));
+    $$('#ashaTabs .tab')[1].classList.add('active');
+    $$('[data-ashapanel]').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-ashapanel="cases"]').classList.add('active');
+  });
+}
+
+/* =========================================================
+   DOCTOR APP
+   ========================================================= */
+function renderDoctorApp() {
+  const user = currentUser();
+  $('#docName').textContent = user.name;
+
+  renderEmergencyBanner(user);
+  renderDoctorEmergency(user);
+  renderDoctorQueue(user);
+  renderDoctorResolved(user);
+  updateDoctorBadges(user);
+}
+
+function updateDoctorBadges(user) {
+  const emergencies = DB.cases.filter(c =>
+    c.status === 'pending' && c.severity === 'red' && c.doctorId === user.doctorId
+  ).length;
+  const queue = DB.cases.filter(c =>
+    c.status !== 'resolved' && c.severity !== 'red' && c.doctorId === user.doctorId
+  ).length;
+
+  const eBadge = $('#docEmergencyBadge');
+  const qBadge = $('#docQueueBadge');
+  if (emergencies > 0) { eBadge.textContent = emergencies; eBadge.classList.remove('hidden'); }
+  else eBadge.classList.add('hidden');
+  if (queue > 0) { qBadge.textContent = queue; qBadge.classList.remove('hidden'); }
+  else qBadge.classList.add('hidden');
+}
+
+function renderEmergencyBanner(user) {
+  const banner = $('#docEmergencyBanner');
+  const emergencies = DB.cases.filter(c =>
+    c.status === 'pending' && c.severity === 'red' && c.doctorId === user.doctorId
+  );
+  if (emergencies.length === 0) {
+    banner.innerHTML = '';
+    return;
+  }
+  banner.innerHTML = `
+    <div class="emergency-banner">
+      <div class="em-icon">🚨</div>
+      <div>
+        <h2>Emergency — immediate attention needed</h2>
+        <p>${emergencies.length} red-flagged ${emergencies.length === 1 ? 'patient' : 'patients'} waiting in the emergency queue.</p>
+      </div>
+      <div class="em-count">
+        ${emergencies.length}
+        <small>Critical</small>
+      </div>
+    </div>
+  `;
+}
+
+function renderDoctorEmergency(user) {
+  const container = $('#docEmergencyList');
+  const cases = DB.cases
+    .filter(c => c.status === 'pending' && c.severity === 'red' && c.doctorId === user.doctorId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">✓</div>
+        <h3>No emergencies right now</h3>
+        <p>Critical cases will appear here with a loud alert.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cases.map(c => renderCaseSummaryCard(c, { showPatient: true, emergency: true })).join('');
+}
+
+function renderDoctorQueue(user) {
+  const container = $('#docQueueList');
+  const cases = DB.cases
+    .filter(c => c.status !== 'resolved' && c.severity !== 'red' && c.doctorId === user.doctorId)
+    .sort((a, b) => {
+      const order = { red: 0, yellow: 1, green: 2 };
+      if (order[a.severity] !== order[b.severity]) return order[a.severity] - order[b.severity];
+      return a.createdAt - b.createdAt;
+    });
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3>Queue is empty</h3>
+        <p>Non-emergency cases will show up here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cases.map(c => renderCaseSummaryCard(c, { showPatient: true })).join('');
+}
+
+function renderDoctorResolved(user) {
+  const container = $('#docResolvedList');
+  const cases = DB.cases
+    .filter(c => c.status === 'resolved' && c.doctorId === user.doctorId)
+    .sort((a, b) => b.resolution.resolvedAt - a.resolution.resolvedAt);
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">✓</div>
+        <h3>No resolved cases yet</h3>
+        <p>Cases you complete will be archived here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cases.map(c => renderCaseSummaryCard(c, { showPatient: true, resolved: true })).join('');
+}
+
+function renderCaseSummaryCard(c, opts = {}) {
+  const patient = getPatient(c.patientId);
+  const severityLabel = c.severity === 'red' ? 'Critical' :
+                        c.severity === 'yellow' ? 'Moderate' : 'Stable';
+  const statusLabel = c.status === 'pending' ? 'Pending review' :
+                      c.status === 'in_review' ? 'Replied' : 'Resolved';
+  const statusClass = c.status === 'pending' ? 'yellow' :
+                      c.status === 'in_review' ? 'blue' : 'green';
+
+  return `
+    <div class="card ${c.severity} hoverable" data-open-case="${c.id}">
+      <div class="card-head">
+        <div>
+          <div class="card-title">${escapeHtml(patient ? patient.name : 'Unknown')} — ${escapeHtml(c.illness)}</div>
+          <div class="card-sub">
+            ${c.id}
+            ${opts.showPatient ? ' · ' + escapeHtml(patient ? patient.id : '') : ''}
+            · ${timeAgo(c.createdAt)}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+          <span class="status-pill ${c.severity}">${severityLabel}</span>
+          <span class="status-pill ${statusClass}">${statusLabel}</span>
+        </div>
+      </div>
+
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;">
+        "${escapeHtml(c.transcript.length > 90 ? c.transcript.substring(0, 90) + '…' : c.transcript)}"
+      </div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-secondary btn-sm" data-open-case-btn="${c.id}">
+          Open case →
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- OPEN CASE MODAL ---------- */
+function openCaseModal(caseId) {
+  const c = getCase(caseId);
+  if (!c) return;
+  const patient = getPatient(c.patientId);
+  const user = currentUser();
+
+  const modal = $('#caseModal');
+  const body = $('#caseModalBody');
+  modal.classList.add('active');
+
+  const severityLabel = c.severity === 'red' ? 'Critical' :
+                        c.severity === 'yellow' ? 'Moderate' : 'Stable';
+
+  let doctorActions = '';
+  if (user.role === 'doctor' && c.status !== 'resolved') {
+    doctorActions = `
+      <div style="margin-top:24px;padding-top:20px;border-top:2px solid var(--line);">
+        <div class="btn-row">
+          <button class="btn btn-primary" data-reply-case="${c.id}">💬 Reply to patient</button>
+          <button class="btn btn-danger" data-resolve-case="${c.id}">✓ Mark resolved</button>
+        </div>
+      </div>
+    `;
+  }
+
+  let replyBlock = '';
+  if (c.doctorReply) {
+    replyBlock = `
+      <div class="soap-section">
+        <span class="soap-letter" style="background:var(--blue);">💬</span>
+        <span class="soap-title">Doctor's reply</span>
+        <div class="soap-body">
+          ${escapeHtml(c.doctorReply.text)}
+          <div style="margin-top:10px;font-size:12.5px;color:var(--muted);">
+            <strong>Prescription:</strong> ${escapeHtml(c.doctorReply.prescription)}<br/>
+            <strong>Follow-up:</strong> ${escapeHtml(c.doctorReply.followUp)}<br/>
+            <strong>Replied:</strong> ${fmtDate(c.doctorReply.repliedAt)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  let resolutionBlock = '';
+  if (c.resolution) {
+    resolutionBlock = `
+      <div class="soap-section">
+        <span class="soap-letter" style="background:var(--green);">✓</span>
+        <span class="soap-title">Resolution</span>
+        <div class="soap-body">
+          <strong>Final diagnosis:</strong> ${escapeHtml(c.resolution.finalDiagnosis)}<br/>
+          <strong>Prescription:</strong> ${escapeHtml(c.resolution.prescription)}<br/>
+          <strong>Advice:</strong> ${escapeHtml(c.resolution.advice)}<br/>
+          <strong>Follow-up date:</strong> ${escapeHtml(c.resolution.followUpDate)}<br/>
+          <strong>Resolved:</strong> ${fmtDate(c.resolution.resolvedAt)}
+        </div>
+      </div>
+    `;
+  }
+
+  body.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-avatar ${c.severity}">${patient ? patient.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : '?'}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;">${escapeHtml(patient ? patient.name : 'Unknown')}</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:3px;">
+          ${patient ? patient.id + ' · ' + patient.age + ' yrs · ' + patient.gender + ' · ' + LANG_NAMES[patient.language] : ''}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="status-pill ${c.severity}">${severityLabel}</span>
+          <span class="status-pill ${c.status === 'pending' ? 'yellow' : c.status === 'in_review' ? 'blue' : 'green'}">
+            ${c.status === 'pending' ? 'Pending review' : c.status === 'in_review' ? 'Replied' : 'Resolved'}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-grid" style="margin-bottom:22px;">
+      <div class="info-cell">
+        <div class="lbl">Case ID</div>
+        <div class="val">${c.id}</div>
+      </div>
+      <div class="info-cell">
+        <div class="lbl">Submitted</div>
+        <div class="val">${fmtDate(c.createdAt)}</div>
+      </div>
+      <div class="info-cell">
+        <div class="lbl">Illness</div>
+        <div class="val">${escapeHtml(c.illness)}</div>
+      </div>
+    </div>
+
+    <div class="soap-section">
+      <span class="soap-letter">S</span>
+      <span class="soap-title">Subjective — spoken by patient</span>
+      <div class="soap-body">
+        <div style="font-style:italic;color:#3b465a;margin-bottom:12px;">
+          "${escapeHtml(c.transcript)}"
+        </div>
+        ${escapeHtml(c.soap.subjective)}
+      </div>
+    </div>
+
+    <div class="soap-section">
+      <span class="soap-letter">O</span>
+      <span class="soap-title">Objective</span>
+      <div class="soap-body">${escapeHtml(c.soap.objective)}</div>
+    </div>
+
+    <div class="soap-section">
+      <span class="soap-letter">A</span>
+      <span class="soap-title">Assessment</span>
+      <div class="soap-body">${escapeHtml(c.soap.assessment)}</div>
+    </div>
+
+    <div class="soap-section">
+      <span class="soap-letter">P</span>
+      <span class="soap-title">Plan</span>
+      <div class="soap-body">${escapeHtml(c.soap.plan)}</div>
+    </div>
+
+    <div class="soap-section">
+      <span class="soap-letter" style="background:var(--blue);">∑</span>
+      <span class="soap-title">Symptoms &amp; ICD-11 codes</span>
+      <div class="soap-body">
+        <div class="symptom-list" style="margin-bottom:12px;">
+          ${c.symptoms.map(s => `<span class="symptom-tag">${escapeHtml(s)}</span>`).join('')}
+        </div>
+        ${c.icd.map(x => `<div class="icd-row"><span class="icd-code">${x.code}</span><span class="icd-desc">${escapeHtml(x.desc)}</span></div>`).join('')}
+      </div>
+    </div>
+
+    ${replyBlock}
+    ${resolutionBlock}
+    ${doctorActions}
+  `;
+
+  // Wire up buttons
+  body.querySelectorAll('[data-reply-case]').forEach(b => {
+    b.addEventListener('click', () => {
+      modal.classList.remove('active');
+      openReplyModal(b.dataset.replyCase);
+    });
+  });
+  body.querySelectorAll('[data-resolve-case]').forEach(b => {
+    b.addEventListener('click', () => {
+      modal.classList.remove('active');
+      openResolveModal(b.dataset.resolveCase);
+    });
+  });
+}
+
+/* ---------- DOCTOR REPLY MODAL ---------- */
+function openReplyModal(caseId) {
+  const c = getCase(caseId);
+  if (!c) return;
+  const patient = getPatient(c.patientId);
+  const tmpl = REPLY_TEMPLATES[c.severity] || REPLY_TEMPLATES.green;
+
+  const modal = $('#replyModal');
+  const body = $('#replyModalBody');
+  modal.classList.add('active');
+
+  body.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-avatar blue">💬</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;">Reply to ${escapeHtml(patient ? patient.name : 'patient')}</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:3px;">
+          Case ${c.id} · ${escapeHtml(c.illness)}
+        </div>
+        <div style="margin-top:8px;">
+          <span class="lang-badge">🔊 Will be spoken in ${LANG_NAMES[patient.language]}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Quick templates</label>
+      <select id="replyTemplateSelect">
+        <option value="${c.severity}">${c.severity.toUpperCase()} severity — recommended text</option>
+        <option value="yellow">Moderate — needs review</option>
+        <option value="green">Mild — reassurance</option>
+        <option value="red">Critical — emergency</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Your reply (will be spoken to the patient)</label>
+      <textarea id="replyText" rows="5">${escapeHtml(tmpl.text)}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Prescription</label>
+      <input id="replyPrescription" type="text" value="${escapeHtml(tmpl.prescription)}" />
+    </div>
+
+    <div class="form-group">
+      <label>Follow-up</label>
+      <input id="replyFollowUp" type="text" value="${escapeHtml(tmpl.followUp)}" />
+    </div>
+
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn btn-primary" id="sendReplyBtn">Send reply</button>
+      <button class="btn btn-danger" id="sendReplyResolveBtn">Send &amp; mark resolved</button>
+      <button class="btn btn-secondary" data-close-modal>Cancel</button>
+    </div>
+  `;
+
+  // Template switcher
+  $('#replyTemplateSelect').addEventListener('change', e => {
+    const t = REPLY_TEMPLATES[e.target.value];
+    if (t) {
+      $('#replyText').value = t.text;
+      $('#replyPrescription').value = t.prescription;
+      $('#replyFollowUp').value = t.followUp;
+    }
+  });
+
+  // Send reply
+  $('#sendReplyBtn').addEventListener('click', () => {
+    const text = $('#replyText').value.trim();
+    if (!text) { toast('Please write a reply', 'error'); return; }
+
+    c.doctorReply = {
+      text,
+      prescription: $('#replyPrescription').value.trim(),
+      followUp: $('#replyFollowUp').value.trim(),
+      repliedAt: Date.now(),
+      repliedBy: currentUser().id
+    };
+    c.status = 'in_review';
+    saveDB();
+
+    modal.classList.remove('active');
+    toast('Reply sent to patient', 'success');
+    renderDoctorApp();
+  });
+
+  // Send & resolve
+  $('#sendReplyResolveBtn').addEventListener('click', () => {
+    const text = $('#replyText').value.trim();
+    if (!text) { toast('Please write a reply', 'error'); return; }
+
+    c.doctorReply = {
+      text,
+      prescription: $('#replyPrescription').value.trim(),
+      followUp: $('#replyFollowUp').value.trim(),
+      repliedAt: Date.now(),
+      repliedBy: currentUser().id
+    };
+    modal.classList.remove('active');
+    openResolveModal(caseId, true);
+  });
+}
+
+/* ---------- DOCTOR RESOLVE MODAL ---------- */
+function openResolveModal(caseId, afterReply = false) {
+  const c = getCase(caseId);
+  if (!c) return;
+  const patient = getPatient(c.patientId);
+
+  const modal = $('#replyModal');
+  const body = $('#replyModalBody');
+  modal.classList.add('active');
+
+  const suggestedDiag = c.doctorReply?.text ? c.illness : c.illness;
+  const suggestedRx = c.doctorReply?.prescription || '';
+
+  body.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-avatar green">✓</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;">Resolve case ${c.id}</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:3px;">
+          ${escapeHtml(patient ? patient.name : '')} · ${escapeHtml(c.illness)}
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:13.5px;color:var(--muted);margin-bottom:20px;line-height:1.55;">
+      Resolving the case archives the full record to the patient's history. They will be able to see exactly what was done.
+    </p>
+
+    <div class="form-group">
+      <label>Final diagnosis</label>
+      <input id="resolveDiagnosis" type="text" value="${escapeHtml(suggestedDiag)}" />
+    </div>
+
+    <div class="form-group">
+      <label>Prescription</label>
+      <input id="resolveRx" type="text" value="${escapeHtml(suggestedRx)}" />
+    </div>
+
+    <div class="form-group">
+      <label>Advice</label>
+      <textarea id="resolveAdvice" rows="3">Rest, hydration, and monitor symptoms. Return if symptoms worsen.</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Follow-up date</label>
+      <input id="resolveFollowUp" type="date" value="${new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]}" />
+    </div>
+
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn btn-primary" id="confirmResolveBtn">✓ Confirm resolution</button>
+      <button class="btn btn-secondary" data-close-modal>Cancel</button>
+    </div>
+  `;
+
+  $('#confirmResolveBtn').addEventListener('click', () => {
+    c.resolution = {
+      finalDiagnosis: $('#resolveDiagnosis').value.trim(),
+      prescription: $('#resolveRx').value.trim(),
+      advice: $('#resolveAdvice').value.trim(),
+      followUpDate: $('#resolveFollowUp').value,
+      resolvedAt: Date.now(),
+      resolvedBy: currentUser().id
+    };
+    c.status = 'resolved';
+    saveDB();
+    modal.classList.remove('active');
+    toast('Case resolved and archived', 'success');
+    renderDoctorApp();
+  });
+}
+
+/* =========================================================
+   EVENT WIRING
+   ========================================================= */
+
+// Login role tabs
+$$('#roleTabs .role-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    $$('#roleTabs .role-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    UI.loginRole = tab.dataset.role;
+  });
+});
+
+// Demo credential autofill
+$$('.demo-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $('#email').value = btn.dataset.email;
+    $('#password').value = btn.dataset.pass;
+    UI.loginRole = btn.dataset.role;
+    $$('#roleTabs .role-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.role === btn.dataset.role)
+    );
+  });
+});
+
+// Login submit
+$('#loginBtn').addEventListener('click', () => {
+  const email = $('#email').value.trim();
+  const password = $('#password').value;
+  const errEl = $('#loginError');
+
+  if (!email || !password) {
+    errEl.textContent = 'Please enter email and password.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const result = login(email, password, UI.loginRole);
+  if (!result.ok) {
+    errEl.textContent = result.error;
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+  toast('Welcome, ' + result.user.name, 'success');
+  routeAfterLogin();
+});
+
+// Enter key on login
+$('#password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('#loginBtn').click();
+});
+
+// Logout buttons
+document.addEventListener('click', e => {
+  if (e.target.matches('[data-logout]')) logout();
+});
+
+// Close modal
+document.addEventListener('click', e => {
+  if (e.target.matches('[data-close-modal]') ||
+      e.target.classList.contains('modal-overlay')) {
+    e.target.closest('.modal-overlay')?.classList.remove('active');
+    // Also clear any content
+    $$('.modal-overlay').forEach(m => m.classList.remove('active'));
+  }
+});
+
+// Patient tabs
+$$('#ptTabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    $$('#ptTabs .tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    $$('[data-ptpanel]').forEach(p => p.classList.remove('active'));
+    document.querySelector(`[data-ptpanel="${tab.dataset.pttab}"]`).classList.add('active');
+  });
+});
+
+// ASHA tabs
+$$('#ashaTabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    $$('#ashaTabs .tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    $$('[data-ashapanel]').forEach(p => p.classList.remove('active'));
+    document.querySelector(`[data-ashapanel="${tab.dataset.ashatab}"]`).classList.add('active');
+  });
+});
+
+// Doctor tabs
+$$('#docTabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    $$('#docTabs .tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    $$('[data-docpanel]').forEach(p => p.classList.remove('active'));
+    document.querySelector(`[data-docpanel="${tab.dataset.doctab}"]`).classList.add('active');
+  });
+});
+
+// Case open handlers (event delegation)
+document.addEventListener('click', e => {
+  const openBtn = e.target.closest('[data-open-case-btn]');
+  if (openBtn) {
+    e.stopPropagation();
+    openCaseModal(openBtn.dataset.openCaseBtn);
+    return;
+  }
+  const cardEl = e.target.closest('[data-open-case]');
+  if (cardEl) {
+    openCaseModal(cardEl.dataset.openCase);
+    return;
+  }
+});
+
+/* ---------- INIT ---------- */
+function init() {
+  if (!loadDB()) {
+    seedDB();
+  } else {
+    // Ensure users exist even if someone cleared them
+    if (!DB.users || DB.users.length === 0) seedDB();
+  }
+
+  setupPatientIntake();
+
+  // Restore session if present
+  if (DB.session && currentUser()) {
+    routeAfterLogin();
+  } else {
+    showScreen('login');
+  }
+
+  // Preload TTS voices
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
+
+  // Request notification permission (for emergency alerts)
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
+// Add a "Reset demo" shortcut — Ctrl+Shift+R
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+    e.preventDefault();
+    resetDB();
+  }
+});
+
+init();
+</script>
+
+</body>
+</html>
